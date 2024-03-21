@@ -1,0 +1,31 @@
+<mat-sidenav-container class="example-container">
+  <mat-sidenav #sidenav mode="side" opened="true">
+    <mat-nav-list>
+      <a mat-list-item>Face from Image</a>
+      <a mat-list-item>Ссылка 2</a>
+      <a mat-list-item>Ссылка 3</a>
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <h2>Face from Image</h2>
+    <p>Здесь будет ваш контент...</p>
+    {{recognitionTime}}
+    <div class="image-wrapper">
+      <img crossOrigin="anonymous" #image [src]="imageSrcWithNumber" alt="No Image"  (load)="imageLoaded()">
+      <img crossOrigin="anonymous" #image [src]="imageSrcVideo" alt="No Image"  (load)="imageLoaded()">
+
+
+      @if (coordinates.length > 0) {
+        @for (coordinate of coordinates; track coordinate) {
+          <app-rectangle [style]="coordinate"></app-rectangle>
+        }
+      }
+
+    </div>
+
+  </mat-sidenav-content>
+</mat-sidenav-container>
+
+
+
