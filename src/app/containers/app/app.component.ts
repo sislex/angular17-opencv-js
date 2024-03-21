@@ -33,12 +33,10 @@ export class AppComponent implements AfterViewInit {
   @ViewChild('image', { static: true }) imageElement: any;
 
   title = 'angular17-opencv-js';
-  imageNumber = 0;
-  imageSrc = 'http://192.168.20.135:8080/shot.jpg';
   imageSrcVideo = 'http://192.168.20.135:8080/video';
-  imageSrcWithNumber = '';
   coordinates: any[] = [];
   recognitionTime = 0;
+  isRecognizing = false;
   utils = new OpenCvUtils('errorMessage');
   classifier: any;
   isImageLoaded = false;
@@ -46,20 +44,18 @@ export class AppComponent implements AfterViewInit {
   constructor(private cdr:  ChangeDetectorRef) { }
 
   ngAfterViewInit() {
-    this.setImageSrcWithNumber();
     if (cv.getBuildInformation) {
-      this.initOpenCv();
+      this.initClassifier();
     } else {
       cv['onRuntimeInitialized']=()=>{
-        this.initOpenCv();
+        this.initClassifier();
       }
     }
   }
 
-  async initOpenCv() {
+  async initClassifier() {
     this.classifier = await this.utils.addClassifier( 'haarcascade_frontalface_default.xml', 'assets/cascades/haarcascade_frontalface_default.xml');
-    this.coordinates = this.getCoordinates(this.classifier, this.isImageLoaded);
-    this.cdr.detectChanges();
+    console.log('this.classifier', this.classifier);
   }
 
   getCoordinates(classifier = this.classifier, isImageLoaded =  this.isImageLoaded) {
@@ -80,11 +76,10 @@ export class AppComponent implements AfterViewInit {
         width: `${coord.width}px`,
         height: `${coord.height}px`
       }));
-      console.log('coordinates', coordinates);
 
       src.delete();
       gray.delete();
-      // classifier.delete();
+      // this.classifier.delete();
       faces.delete();
       this.recognitionTime = performance.now() - startTime;
     }
@@ -94,18 +89,11 @@ export class AppComponent implements AfterViewInit {
 
   imageLoaded() {
     this.isImageLoaded = true;
-    setTimeout(() => {
-      this.setImageSrcWithNumber();
-    }, 0);
-    // this.setImageSrcWithNumber();
     this.coordinates = this.getCoordinates(this.classifier, this.isImageLoaded);
-    // this.cdr.detectChanges();
-  }
-
-  setImageSrcWithNumber() {
-    this.imageSrcWithNumber = `${this.imageSrc}?number=${this.imageNumber}`;
-    this.imageNumber = this.imageNumber + 1;
     this.cdr.detectChanges();
-    console.log(this.imageSrcWithNumber);
+    setTimeout(() => {
+      this.imageLoaded();
+      console.log('this.coordinates', this.coordinates);
+    }, 0);
   }
 }

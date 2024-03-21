@@ -27,23 +27,6 @@ function OpenCvUtils(errorOutputId) {
         let node = document.getElementsByTagName('script')[0];
         node.parentNode.insertBefore(script, node);
     };
-    this.createFileFromUrl = function(path, url, callback) {
-        let request = new XMLHttpRequest();
-        request.open('GET', url, true);
-        request.responseType = 'arraybuffer';
-        request.onload = function(ev) {
-            if (request.readyState === 4) {
-                if (request.status === 200) {
-                    let data = new Uint8Array(request.response);
-                    cv.FS_createDataFile('/', path, data, true, false, false);
-                    callback();
-                } else {
-                    self.printError('Failed to load ' + url + ' status: ' + request.status);
-                }
-            }
-        };
-        request.send();
-    };
     this.loadImageToCanvas = function(url, cavansId) {
         let canvas = document.getElementById(cavansId);
         let ctx = canvas.getContext('2d');
@@ -147,6 +130,23 @@ function OpenCvUtils(errorOutputId) {
             this.stream.getVideoTracks()[0].stop();
         }
     };
+  this.createFileFromUrl = function(path, url, callback) {
+    let request = new XMLHttpRequest();
+    request.open('GET', url, true);
+    request.responseType = 'arraybuffer';
+    request.onload = function(ev) {
+      if (request.readyState === 4) {
+        if (request.status === 200) {
+          let data = new Uint8Array(request.response);
+          cv.FS_createDataFile('/', path, data, true, false, false);
+          callback();
+        } else {
+          self.printError('Failed to load ' + url + ' status: ' + request.status);
+        }
+      }
+    };
+    request.send();
+  };
     this.addClassifier = function(path, url) {
         return  new Promise((resolve, reject) => {
             const classifier = new cv.CascadeClassifier();

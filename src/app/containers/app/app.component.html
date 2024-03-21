@@ -12,8 +12,7 @@
     <p>Здесь будет ваш контент...</p>
     {{recognitionTime}}
     <div class="image-wrapper">
-      <img crossOrigin="anonymous" #image [src]="imageSrcWithNumber" alt="No Image"  (load)="imageLoaded()">
-      <img crossOrigin="anonymous" #image [src]="imageSrcVideo" alt="No Image"  (load)="imageLoaded()">
+      <img crossOrigin="anonymous" #image [src]="imageSrcVideo" alt="No Image"  (load)="imageLoaded()" >
 
 
       @if (coordinates.length > 0) {
