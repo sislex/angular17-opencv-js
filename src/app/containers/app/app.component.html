@@ -10,17 +10,24 @@
   <mat-sidenav-content>
     <h2>Face from Image</h2>
     <p>Здесь будет ваш контент...</p>
-    {{recognitionTime}}
-    <div class="image-wrapper">
-      <img crossOrigin="anonymous" #image [src]="imageSrcVideo" alt="No Image"  (load)="imageLoaded()" >
+    {{timeRecognition}}
+    <div class="display-flex">
+      <div class="image-wrapper">
+        <img crossOrigin="anonymous" #image [src]="imageSrcVideo" alt="No Image"  (load)="imageLoaded()" >
 
 
-      @if (coordinates.length > 0) {
-        @for (coordinate of coordinates; track coordinate) {
-          <app-rectangle [style]="coordinate"></app-rectangle>
+        @if (coordinates.length > 0) {
+          @for (coordinate of coordinates; track coordinate) {
+            <app-rectangle [style]="coordinate"></app-rectangle>
+          }
         }
-      }
 
+      </div>
+    </div>
+
+
+    <div class="canvas-wrapper">
+      <canvas #myCanvas></canvas>
     </div>
 
   </mat-sidenav-content>

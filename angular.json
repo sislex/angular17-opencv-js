@@ -32,10 +32,7 @@
             "styles": [
               "src/styles.scss"
             ],
-            "scripts": [
-              "src/assets/scripts/opencv.js",
-              "src/assets/scripts/utils.js"
-            ]
+            "scripts": []
           },
           "configurations": {
             "production": {

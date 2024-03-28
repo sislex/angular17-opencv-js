@@ -15,22 +15,35 @@
     }
   }
 
-  .image-wrapper {
-    width: 500px;
-    height: auto;
-    position: relative;
-    border: 1px solid #000;
+  .display-flex {
+    display: flex;
 
-    img {
+    .image-wrapper {
+      position: relative;
+      width: 400px;
+      height: auto;
+      border: 1px solid #000;
+
+      img {
+        width: 100%;
+        height: auto;
+      }
+
+      app-rectangle {
+        position: absolute;
+      }
+    }
+
+
+  }
+  .canvas-wrapper {
+    width: 400px;
+    height: auto;
+
+    canvas {
       width: 100%;
       height: auto;
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-
-    app-rectangle {
-      position: absolute;
     }
   }
+
 }

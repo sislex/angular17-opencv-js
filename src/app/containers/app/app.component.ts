@@ -2,7 +2,7 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
-  Component,
+  Component, ElementRef,
   ViewChild
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -10,9 +10,6 @@ import { RouterOutlet } from '@angular/router';
 import {RectangleComponent} from '../../components/rectangle/rectangle.component';
 import {MatSidenavModule} from '@angular/material/sidenav';
 import {MatListModule} from '@angular/material/list';
-
-declare var cv: any;
-declare var OpenCvUtils: any;
 
 @Component({
   selector: 'app-root',
@@ -30,70 +27,102 @@ declare var OpenCvUtils: any;
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppComponent implements AfterViewInit {
-  @ViewChild('image', { static: true }) imageElement: any;
+  @ViewChild('image', { static: true }) imageElement!: ElementRef<HTMLImageElement>;
+  @ViewChild('myCanvas', { static: true }) myCanvas!: ElementRef<HTMLCanvasElement>;
 
+  worker!: Worker;
   title = 'angular17-opencv-js';
   imageSrcVideo = 'http://192.168.20.135:8080/video';
   coordinates: any[] = [];
-  recognitionTime = 0;
-  isRecognizing = false;
-  utils = new OpenCvUtils('errorMessage');
-  classifier: any;
   isImageLoaded = false;
+  recognitionInterval = 30;
+
+  startTimeRecognition = 0;
+  timeRecognition = 0;
+  scaleRecognition = 1.4;
 
   constructor(private cdr:  ChangeDetectorRef) { }
 
   ngAfterViewInit() {
-    if (cv.getBuildInformation) {
-      this.initClassifier();
+    this.initWorker();
+  }
+
+  initWorker() {
+    if (typeof Worker !== 'undefined') {
+      // Создаём новый экземпляр Web Worker
+      // Указываем путь к файлу воркера в папке assets
+      this.worker = new Worker('/assets/workers/openCv-face.js');
+
+      // Подписываемся на сообщения от Web Worker
+      this.worker.onmessage = ({ data }) => {
+        this.events(data);
+      };
+
+      // Подписываемся на ошибки Web Worker
+      this.worker.onerror = (error) => {
+        console.error(`Ошибка Web Worker:`, error);
+      };
     } else {
-      cv['onRuntimeInitialized']=()=>{
-        this.initClassifier();
-      }
+      // Web Workers не поддерживаются в этом окружении
+      console.error('Web Workers не поддерживаются');
     }
   }
 
-  async initClassifier() {
-    this.classifier = await this.utils.addClassifier( 'haarcascade_frontalface_default.xml', 'assets/cascades/haarcascade_frontalface_default.xml');
-    console.log('this.classifier', this.classifier);
+  displayImage(imageData: ImageData, canvas = this.myCanvas.nativeElement) {
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      canvas.width = imageData.width;
+      canvas.height = imageData.height;
+      ctx.putImageData(imageData, 0, 0);
+    }
   }
 
-  getCoordinates(classifier = this.classifier, isImageLoaded =  this.isImageLoaded) {
-    let coordinates = [];
-    if (classifier && isImageLoaded) {
-      const startTime = performance.now();
-      const src = cv.imread(this.imageElement.nativeElement);
-      const msize = new cv.Size(0, 0);
-      const gray = new cv.Mat();
-      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+  getImageData(img = this.imageElement.nativeElement) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 
-      const faces = new cv.RectVector();
-      classifier.detectMultiScale(gray, faces, 1.1, 3, 0, msize, msize);
-      const coordinatesFaces = this.utils.getCoordinates(faces);
-      coordinates = coordinatesFaces.map((coord: any) => ({
-        left: `${coord.x}px`,
-        top: `${coord.y}px`,
-        width: `${coord.width}px`,
-        height: `${coord.height}px`
-      }));
+    canvas.width = img.naturalWidth/this.scaleRecognition;
+    canvas.height = img.naturalHeight/this.scaleRecognition;
 
-      src.delete();
-      gray.delete();
-      // this.classifier.delete();
-      faces.delete();
-      this.recognitionTime = performance.now() - startTime;
-    }
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-    return coordinates;
+    return ctx.getImageData(0, 0, canvas.width, canvas.height);
+  }
+
+  sendImage() {
+    this.startTimeRecognition = performance.now();
+    const imageData = this.getImageData();
+    this.displayImage(imageData);
+    this.worker.postMessage({
+      event: 'PROCESS_IMAGE',
+      data: {
+        data: imageData.data.buffer,
+        width: imageData.width,
+        height: imageData.height,
+      },
+    }, [imageData.data.buffer]);
   }
 
   imageLoaded() {
     this.isImageLoaded = true;
-    this.coordinates = this.getCoordinates(this.classifier, this.isImageLoaded);
-    this.cdr.detectChanges();
-    setTimeout(() => {
-      this.imageLoaded();
-      console.log('this.coordinates', this.coordinates);
-    }, 0);
+  }
+
+  events(message: any) {
+    // console.log(message);
+    if (message.event === 'CLASSIFIER_LOADED') {
+     this.sendImage();
+    } else if (message.event === 'COORDINATES') {
+      this.coordinates = message.data;
+      this.timeRecognition = performance.now() - this.startTimeRecognition;
+      this.cdr.detectChanges();
+
+      let interval = this.recognitionInterval - this.timeRecognition;
+      if (interval < 0) {
+        interval = 0;
+      }
+      setTimeout(() => {
+        this.sendImage();
+      }, interval);
+    }
   }
 }
