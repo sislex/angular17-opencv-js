@@ -1,5 +1,4 @@
 function openCvGetFaces() {
-
   this.createFileFromUrl = function(path, url, callback) {
     let request = new XMLHttpRequest();
     request.open('GET', url, true);

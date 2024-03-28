@@ -1,0 +1,12 @@
+<h2>{{(getSelectedSideMenuItem$ | async)!.name}}</h2>
+<span class="sr-only">{{timeRecognition}}</span>
+<div class="display-flex">
+  <div class="image-wrapper">
+    <video #video autoplay playsinline (playing)="imageLoaded()" [src]="src"></video>
+    @if (coordinates.length > 0) {
+      @for (coordinate of coordinates; track coordinate) {
+        <app-rectangle [style]="coordinate"></app-rectangle>
+      }
+    }
+  </div>
+</div>

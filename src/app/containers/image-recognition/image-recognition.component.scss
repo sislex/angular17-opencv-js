@@ -1,0 +1,32 @@
+:host {
+  .display-flex {
+    display: flex;
+
+    .image-wrapper {
+      position: relative;
+      width: 400px;
+      height: auto;
+      border: 1px solid #000;
+
+      img, video {
+        width: 100%;
+        height: auto;
+      }
+
+      app-rectangle {
+        position: absolute;
+      }
+    }
+
+
+  }
+  .canvas-wrapper {
+    width: 400px;
+    height: auto;
+
+    canvas {
+      width: 100%;
+      height: auto;
+    }
+  }
+}
