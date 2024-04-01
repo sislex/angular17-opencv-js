@@ -1,11 +1,11 @@
 <h2>{{(getSelectedSideMenuItem$ | async)!.name}}</h2>
 @if ((getSelectedSideMenuItem$ | async)!.data?.src) {
-  <span class="sr-only">{{timeRecognition}}</span>
+  <span class="sr-only">OverageRecognitionTime: {{getOverageRecognitionTime$ | async}}</span>
   <div class="display-flex">
     <div class="image-wrapper">
       <img crossOrigin="anonymous" #image [src]="(getSelectedSideMenuItem$ | async)!.data?.src" alt="No Image"  (load)="imageLoaded()" >
-      @if (coordinates.length > 0) {
-        @for (coordinate of coordinates; track coordinate) {
+      @if (!!(getCoordinatesStyles$ | async) && (getCoordinatesStyles$ | async)!.length > 0) {
+        @for (coordinate of (getCoordinatesStyles$ | async); track coordinate) {
           <app-rectangle [style]="coordinate"></app-rectangle>
         }
       }

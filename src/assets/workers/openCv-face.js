@@ -4,15 +4,19 @@ let utils;
 let classifier;
 self.addEventListener('message', function(e) {
   const message = e.data;
-   if (message.event === 'PROCESS_IMAGE') {
+  if (message.event === 'PROCESS_IMAGE') {
+    const startTimeRecognition = performance.now();
     const { data, width, height } = message.data;
     const imageData = new ImageData(new Uint8ClampedArray(data), width, height);
     // console.log('imageData', imageData);
 
     const coordinates = getCoordinates(imageData, classifier);
-    self.postMessage({event: 'COORDINATES', data: coordinates});
+    self.postMessage({event: 'COORDINATES', data: {
+        coordinates,
+        recognitionTime: Math.round(performance.now() - startTimeRecognition)
+      }});
   }
-  var result = 'Результат работы: ' + message.event ;
+  const result = 'Результат работы: ' + message.event ;
   self.postMessage(result);
 
 
@@ -46,10 +50,10 @@ function getCoordinates(imageData, classifier) {
     classifier.detectMultiScale(gray, faces, 1.1, 3, 0, msize, msize);
     const coordinatesFaces = utils.getCoordinates(faces);
     coordinates = coordinatesFaces.map((coord) => ({
-      left: `${(coord.x/imageData.width) * 100}%`,
-      top: `${(coord.y/imageData.height) * 100}%`,
-      width: `${(coord.width/imageData.width) * 100}%`,
-      height: `${(coord.height/imageData.height )* 100}%`
+      left: `${(coord.x/imageData.width) * 100}`,
+      top: `${(coord.y/imageData.height) * 100}`,
+      width: `${(coord.width/imageData.width) * 100}`,
+      height: `${(coord.height/imageData.height )* 100}`
     }));
 
     src.delete();

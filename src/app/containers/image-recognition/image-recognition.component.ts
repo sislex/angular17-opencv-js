@@ -1,9 +1,8 @@
 import {
-  AfterViewInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  ElementRef,
+  ElementRef, OnDestroy,
   ViewChild
 } from '@angular/core';
 import {RectangleComponent} from '../../components/rectangle/rectangle.component';
@@ -11,6 +10,11 @@ import {Store} from '@ngrx/store';
 import {getSelectedSideMenuItem} from '../../+state/view/view.selectors';
 import {AsyncPipe} from '@angular/common';
 import {take} from 'rxjs';
+import { addCoordinates } from '../../+state/targets/targets.actions';
+import {getCoordinatesStyles, getOverageRecognitionTime} from '../../+state/targets/targets.selectors';
+import {RecognitionWorkerService} from '../../services/recognition-worker.service';
+import {getImageData} from '../../halpers/images-utils';
+import {getIntervalTime} from '../../halpers/coordinates-utils';
 
 @Component({
   selector: 'app-image-recognition',
@@ -23,91 +27,63 @@ import {take} from 'rxjs';
   styleUrl: './image-recognition.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ImageRecognitionComponent  implements AfterViewInit {
+export class ImageRecognitionComponent  implements OnDestroy {
   @ViewChild('image', { static: false }) imageElement!: ElementRef<HTMLImageElement>;
   @ViewChild('video', { static: false }) videoElement!: ElementRef<HTMLVideoElement>;
 
   getSelectedSideMenuItem$ = this.store.select(getSelectedSideMenuItem).pipe(take(1));
+  getOverageRecognitionTime$ = this.store.select(getOverageRecognitionTime);
+  getCoordinatesStyles$ = this.store.select(getCoordinatesStyles);
 
   isImageLoaded = false;
-  isClassifierLoaded = false;
-
-  worker!: Worker;
-  coordinates: any[] = [];
+  workerIsReady = false;
 
   isRecognizing = false;
-  startTimeRecognition = 0;
-  timeRecognition = 0;
 
-  // settings
-  scaleRecognition = 4.5;
   // video only
   isVideo = false;
   recognitionInterval = 0;
 
-  constructor(private readonly store: Store, private cdr:  ChangeDetectorRef) {
-    console.log('ImageRecognitionComponent');
+  constructor(
+    private readonly store: Store,
+    private readonly recognitionWorkerService: RecognitionWorkerService,
+    private readonly cdr:  ChangeDetectorRef,
+  ) {
     this.getSelectedSideMenuItem$.subscribe((selectedItem) => {
       if (selectedItem) {
-        this.scaleRecognition = selectedItem.data.scaleRecognition;
 
         this.isVideo = selectedItem.data.isVideo;
         this.recognitionInterval = selectedItem.data.recognitionInterval;
       }
     });
-  }
 
-  ngAfterViewInit() {
-    this.worker = this.initWorker( '/assets/workers/openCv-face.js');
+    this.recognitionWorkerService.isWorkerReady$.subscribe((isReady) => {
+      this.workerIsReady = isReady;
+      this.sendImage();
+    });
+
+    this.recognitionWorkerService.getWorkerMessages().subscribe((message) => {
+      console.log('message', message);
+      this.events(message);
+    });
   }
 
   ngOnDestroy() {
-    if (this.worker) {
-      this.worker.terminate();
-    }
     if (this.imageElement && this.imageElement.nativeElement) {
       // Очистка источника изображения
       this.imageElement.nativeElement.src = '';
     }
   }
 
-  initWorker(workerUrl: string) {
-    let worker!: Worker;
-    if (typeof Worker !== 'undefined') {
-      worker = new Worker(workerUrl);
-
-      worker.onmessage = ({ data }) => {
-        this.events(data);
-      };
-
-      worker.onerror = (error) => {
-        console.error(`Ошибка Web Worker:`, error);
-      };
-    } else {
-      console.error('Web Workers не поддерживаются');
-    }
-
-    return worker;
-  }
-
-  getImageData(img = this.imageElement.nativeElement) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-
-    canvas.width = img.naturalWidth/this.scaleRecognition;
-    canvas.height = img.naturalHeight/this.scaleRecognition;
-
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-    return ctx.getImageData(0, 0, canvas.width, canvas.height);
-  }
-
   sendImage() {
-    if (this.isImageLoaded && this.isClassifierLoaded) {
+    if (this.isImageLoaded && this.workerIsReady) {
       this.isRecognizing = true;
-      this.startTimeRecognition = performance.now();
-      const imageData = this.getImageData();
-      this.worker.postMessage({
+      const size:  {width: number, height: number} = {
+        width:  this.imageElement.nativeElement.naturalWidth/4.5,
+        height: this.imageElement.nativeElement.naturalHeight/4.5,
+      };
+      const imageData = getImageData(this.imageElement.nativeElement, size);
+      this.recognitionWorkerService.sendMessage({
         event: 'PROCESS_IMAGE',
         data: {
           data: imageData.data.buffer,
@@ -120,31 +96,22 @@ export class ImageRecognitionComponent  implements AfterViewInit {
 
   imageLoaded() {
     this.isImageLoaded = true;
-    if (this.startTimeRecognition === 0) {
+    if (!this.isRecognizing) {
       this.sendImage();
     }
   }
 
   events(message: any) {
     // console.log(message);
-    if (message.event === 'CLASSIFIER_LOADED') {
-      this.isClassifierLoaded = true;
-      this.sendImage();
-      this.cdr.detectChanges();
-    } else if (message.event === 'COORDINATES') {
-      this.coordinates = message.data;
-      this.timeRecognition = performance.now() - this.startTimeRecognition;
+     if (message.event === 'COORDINATES') {
       this.isRecognizing = false;
+      this.store.dispatch(addCoordinates({recognitionData: message.data}));
       this.cdr.detectChanges();
 
       if (this.isVideo) {
-        let interval = this.recognitionInterval - this.timeRecognition;
-        if (interval < 0) {
-          interval = 0;
-        }
         setTimeout(() => {
           this.sendImage();
-        }, interval);
+        }, getIntervalTime(message.data.recognitionTime,  this.recognitionInterval));
       }
     }
   }

@@ -11,6 +11,8 @@ import {Store} from '@ngrx/store';
 import {getSelectedSideMenuItem} from '../../+state/view/view.selectors';
 import {AsyncPipe} from '@angular/common';
 import {take} from 'rxjs';
+import {addCoordinates} from '../../+state/targets/targets.actions';
+import {getOverageRecognitionTime} from '../../+state/targets/targets.selectors';
 
 @Component({
   selector: 'app-camera-recognition',
@@ -27,6 +29,7 @@ export class CameraRecognitionComponent implements AfterViewInit, OnDestroy {
   @ViewChild('video', { static: false }) videoElement!: ElementRef<HTMLVideoElement>;
 
   getSelectedSideMenuItem$ = this.store.select(getSelectedSideMenuItem).pipe(take(1));
+  getOverageRecognitionTime$ = this.store.select(getOverageRecognitionTime);
 
   isImageLoaded = false;
   isClassifierLoaded = false;
@@ -98,7 +101,6 @@ export class CameraRecognitionComponent implements AfterViewInit, OnDestroy {
 
   initCamera() {
     if (!this.src) {
-      // const video = document.createElement('video');
       if (this.videoElement) {
         const video = this.videoElement.nativeElement;
         console.log('video');
@@ -107,9 +109,6 @@ export class CameraRecognitionComponent implements AfterViewInit, OnDestroy {
             console.log('Camera Started');
             video.srcObject = stream;
             video.play();
-            // self.video = video;
-            // self.stream = stream;
-            // self.onCameraStartedCallback = callback;
             video.addEventListener('canplay', () => {
               console.log('canplay');
             }, false);
@@ -156,6 +155,31 @@ export class CameraRecognitionComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  addCoordinates(message: any) {
+    this.coordinates = message.data.coordinates.map((item: any) => ({
+      top: item.top + '%' ,
+      left: item.left + '%',
+      width: item.width + '%',
+      height: item.height + '%',
+    }));
+    this.timeRecognition = performance.now() - this.startTimeRecognition;
+    this.isRecognizing = false;
+
+    this.store.dispatch(addCoordinates({recognitionData: message.data}));
+  }
+
+  recognizeAgain() {
+    if (this.isVideo) {
+      let interval = this.recognitionInterval - this.timeRecognition;
+      if (interval < 0) {
+        interval = 0;
+      }
+      setTimeout(() => {
+        this.sendImage();
+      }, interval);
+    }
+  }
+
   events(message: any) {
     // console.log(message);
     if (message.event === 'CLASSIFIER_LOADED') {
@@ -163,20 +187,9 @@ export class CameraRecognitionComponent implements AfterViewInit, OnDestroy {
       this.sendImage();
       this.cdr.detectChanges();
     } else if (message.event === 'COORDINATES') {
-      this.coordinates = message.data;
-      this.timeRecognition = performance.now() - this.startTimeRecognition;
-      this.isRecognizing = false;
+      this.addCoordinates(message);
       this.cdr.detectChanges();
-
-      if (this.isVideo) {
-        let interval = this.recognitionInterval - this.timeRecognition;
-        if (interval < 0) {
-          interval = 0;
-        }
-        setTimeout(() => {
-          this.sendImage();
-        }, interval);
-      }
+      this.recognizeAgain();
     }
   }
 }
