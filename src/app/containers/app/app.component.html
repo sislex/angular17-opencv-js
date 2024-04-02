@@ -16,13 +16,15 @@
       <app-image-recognition></app-image-recognition>
     }
     @if (isInternalCameraView$ | async) {
-     <app-camera-recognition></app-camera-recognition>
+      <app-image-recognition></app-image-recognition>
+<!--     <app-camera-recognition></app-camera-recognition>-->
     }
     @if (isExternalCameraView$ | async) {
       <app-image-recognition></app-image-recognition>
     }
     @if (isVideoView$ | async) {
-      <app-camera-recognition></app-camera-recognition>
+<!--      <app-camera-recognition></app-camera-recognition>-->
+      <app-image-recognition></app-image-recognition>
     }
   </mat-sidenav-content>
 </mat-sidenav-container>

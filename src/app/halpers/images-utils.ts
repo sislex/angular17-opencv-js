@@ -1,5 +1,5 @@
 export  const   getImageData = (
-  img: HTMLImageElement,
+  img: HTMLImageElement | HTMLVideoElement,
   size: {width: number, height: number} = {
     width:  640,
     height: 480

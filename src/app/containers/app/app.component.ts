@@ -18,7 +18,6 @@ import {
 import {Store} from '@ngrx/store';
 import {IMenuItem} from '../../+state/view/view.reducer';
 import {selectSideMenu} from '../../+state/view/view.actions';
-import {CameraRecognitionComponent} from '../camera-recognition/camera-recognition.component';
 
 @Component({
   selector: 'app-root',
@@ -31,7 +30,6 @@ import {CameraRecognitionComponent} from '../camera-recognition/camera-recogniti
       MatSidenavModule,
       MatListModule,
       ImageRecognitionComponent,
-      CameraRecognitionComponent,
     ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',

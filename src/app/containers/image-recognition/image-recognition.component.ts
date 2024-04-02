@@ -1,4 +1,5 @@
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
@@ -9,12 +10,13 @@ import {RectangleComponent} from '../../components/rectangle/rectangle.component
 import {Store} from '@ngrx/store';
 import {getSelectedSideMenuItem} from '../../+state/view/view.selectors';
 import {AsyncPipe} from '@angular/common';
-import {take} from 'rxjs';
+import {Subject, take, takeUntil} from 'rxjs';
 import { addCoordinates } from '../../+state/targets/targets.actions';
 import {getCoordinatesStyles, getOverageRecognitionTime} from '../../+state/targets/targets.selectors';
 import {RecognitionWorkerService} from '../../services/recognition-worker.service';
 import {getImageData} from '../../halpers/images-utils';
 import {getIntervalTime} from '../../halpers/coordinates-utils';
+import {destroyCamera, initCamera} from '../../halpers/camera-utils';
 
 @Component({
   selector: 'app-image-recognition',
@@ -27,62 +29,83 @@ import {getIntervalTime} from '../../halpers/coordinates-utils';
   styleUrl: './image-recognition.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ImageRecognitionComponent  implements OnDestroy {
-  @ViewChild('image', { static: false }) imageElement!: ElementRef<HTMLImageElement>;
-  @ViewChild('video', { static: false }) videoElement!: ElementRef<HTMLVideoElement>;
+export class ImageRecognitionComponent  implements OnDestroy, AfterViewInit {
+  @ViewChild('content', { static: false }) contentElement!: ElementRef<HTMLVideoElement>;
 
   getSelectedSideMenuItem$ = this.store.select(getSelectedSideMenuItem).pipe(take(1));
   getOverageRecognitionTime$ = this.store.select(getOverageRecognitionTime);
   getCoordinatesStyles$ = this.store.select(getCoordinatesStyles);
 
-  isImageLoaded = false;
-  workerIsReady = false;
+  private destroy$ = new Subject<void>();
 
-  isRecognizing = false;
+  isContentReady = false;
+  private workerIsReady = false;
 
-  // video only
-  isVideo = false;
-  recognitionInterval = 0;
+  private isRecognizing = false;
+
+  private cameraSize: {width: number, height: number} = {
+    width:  320,
+    height: 240,
+  }
 
   constructor(
     private readonly store: Store,
     private readonly recognitionWorkerService: RecognitionWorkerService,
     private readonly cdr:  ChangeDetectorRef,
   ) {
-    this.getSelectedSideMenuItem$.subscribe((selectedItem) => {
-      if (selectedItem) {
-
-        this.isVideo = selectedItem.data.isVideo;
-        this.recognitionInterval = selectedItem.data.recognitionInterval;
-      }
-    });
-
-    this.recognitionWorkerService.isWorkerReady$.subscribe((isReady) => {
+    this.recognitionWorkerService.isWorkerReady$.pipe(takeUntil(this.destroy$)).subscribe((isReady) => {
       this.workerIsReady = isReady;
       this.sendImage();
     });
 
-    this.recognitionWorkerService.getWorkerMessages().subscribe((message) => {
-      console.log('message', message);
+    this.recognitionWorkerService.getWorkerMessages().pipe(takeUntil(this.destroy$)).subscribe((message) => {
       this.events(message);
     });
   }
 
+  ngAfterViewInit() {
+    this.getSelectedSideMenuItem$.pipe(take(1)).subscribe((selectedItem) => {
+      if (selectedItem?.data.isCamera) {
+        initCamera(this.contentElement.nativeElement);
+      }
+    });
+  }
+
   ngOnDestroy() {
-    if (this.imageElement && this.imageElement.nativeElement) {
-      // Очистка источника изображения
-      this.imageElement.nativeElement.src = '';
+    if (this.contentElement && this.contentElement.nativeElement) {
+      this.isContentReady = false;
+      const contentElement = this.contentElement.nativeElement;
+      contentElement.src = '';
+      destroyCamera(contentElement);
+      // this.getSelectedSideMenuItem$.pipe(take(1)).subscribe((selectedItem) => {
+      //   if (selectedItem?.data.isCamera) {
+      //     // Остановка камеры
+      //
+      //   } else {
+      //     // Очистка источника изображения
+      //
+      //   }
+      // });
+
     }
+    this.destroy$.next();
   }
 
   sendImage() {
-    if (this.isImageLoaded && this.workerIsReady) {
+    if (this.isContentReady && this.workerIsReady) {
       this.isRecognizing = true;
-      const size:  {width: number, height: number} = {
-        width:  this.imageElement.nativeElement.naturalWidth/4.5,
-        height: this.imageElement.nativeElement.naturalHeight/4.5,
-      };
-      const imageData = getImageData(this.imageElement.nativeElement, size);
+
+      const element: any = this.contentElement.nativeElement;
+      let size: {width: number, height: number} = this.cameraSize;
+
+      if (element.naturalWidth) { // if image
+        size = {
+          width:  element.naturalWidth/4.5,
+          height: element.naturalHeight/4.5,
+        };
+      }
+
+      const imageData = getImageData(this.contentElement.nativeElement, size);
       this.recognitionWorkerService.sendMessage({
         event: 'PROCESS_IMAGE',
         data: {
@@ -94,8 +117,8 @@ export class ImageRecognitionComponent  implements OnDestroy {
     }
   }
 
-  imageLoaded() {
-    this.isImageLoaded = true;
+  contentReady() {
+    this.isContentReady = true;
     if (!this.isRecognizing) {
       this.sendImage();
     }
@@ -108,11 +131,15 @@ export class ImageRecognitionComponent  implements OnDestroy {
       this.store.dispatch(addCoordinates({recognitionData: message.data}));
       this.cdr.detectChanges();
 
-      if (this.isVideo) {
-        setTimeout(() => {
-          this.sendImage();
-        }, getIntervalTime(message.data.recognitionTime,  this.recognitionInterval));
-      }
+       this.getSelectedSideMenuItem$.pipe(take(1)).subscribe((selectedItem) => {
+         const recognitionInterval = selectedItem?.data.recognitionInterval;
+
+         if (recognitionInterval > 0) {
+           setTimeout(() => {
+             this.sendImage();
+           }, getIntervalTime(message.data.recognitionTime,  recognitionInterval));
+         }
+       });
     }
   }
 }

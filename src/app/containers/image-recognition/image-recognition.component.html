@@ -1,15 +1,17 @@
 <h2>{{(getSelectedSideMenuItem$ | async)!.name}}</h2>
-@if ((getSelectedSideMenuItem$ | async)!.data?.src) {
-  <span class="sr-only">OverageRecognitionTime: {{getOverageRecognitionTime$ | async}}</span>
-  <div class="display-flex">
-    <div class="image-wrapper">
-      <img crossOrigin="anonymous" #image [src]="(getSelectedSideMenuItem$ | async)!.data?.src" alt="No Image"  (load)="imageLoaded()" >
-      @if (!!(getCoordinatesStyles$ | async) && (getCoordinatesStyles$ | async)!.length > 0) {
-        @for (coordinate of (getCoordinatesStyles$ | async); track coordinate) {
-          <app-rectangle [style]="coordinate"></app-rectangle>
-        }
+<p class="sr-only">OverageRecognitionTime: {{getOverageRecognitionTime$ | async}}</p>
+<div class="display-flex">
+  <div class="image-wrapper">
+    @if ((getSelectedSideMenuItem$ | async)!.data.isVideo) {
+      <video #content autoplay playsinline (playing)="contentReady()" [src]="(getSelectedSideMenuItem$ | async)!.data?.src"></video>
+    } @else {
+      <img #content crossOrigin="anonymous"  [src]="(getSelectedSideMenuItem$ | async)!.data?.src" alt="No Image"  (load)="contentReady()" >
+    }
+    @if (isContentReady && !!(getCoordinatesStyles$ | async) && (getCoordinatesStyles$ | async)!.length > 0) {
+      @for (coordinate of (getCoordinatesStyles$ | async); track coordinate) {
+        <app-rectangle [style]="coordinate"></app-rectangle>
       }
-    </div>
-
+    }
   </div>
-}
+
+</div>
