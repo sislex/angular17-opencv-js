@@ -36,10 +36,6 @@ import {selectSideMenu} from '../../+state/view/view.actions';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppComponent {
-  // src = 'http://192.168.20.135:8080/video';
-  src = 'assets/images/faces.jpeg';
-
-
   getSideMenu$ = this.store.select(getSideMenu);
   isImageView$ = this.store.select(isImageView);
   isInternalCameraView$ = this.store.select(isInternalCameraView);
@@ -51,6 +47,4 @@ export class AppComponent {
   selectMenu(menuItem: IMenuItem) {
     this.store.dispatch(selectSideMenu({menuItem}));
   }
-
-  protected readonly isInternalCameraView = isInternalCameraView;
 }

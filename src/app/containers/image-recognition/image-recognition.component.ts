@@ -9,10 +9,14 @@ import {
 import {RectangleComponent} from '../../components/rectangle/rectangle.component';
 import {Store} from '@ngrx/store';
 import {getSelectedSideMenuItem} from '../../+state/view/view.selectors';
-import {AsyncPipe} from '@angular/common';
+import {AsyncPipe, JsonPipe} from '@angular/common';
 import {Subject, take, takeUntil} from 'rxjs';
 import { addCoordinates } from '../../+state/targets/targets.actions';
-import {getCoordinatesStyles, getOverageRecognitionTime} from '../../+state/targets/targets.selectors';
+import {
+  getCoordinatesStyles,
+  getOverageRecognitionTime,
+  getTheDistanceToTheCenterOfTheNearestTarget
+} from '../../+state/targets/targets.selectors';
 import {RecognitionWorkerService} from '../../services/recognition-worker.service';
 import {getImageData} from '../../halpers/images-utils';
 import {getIntervalTime} from '../../halpers/coordinates-utils';
@@ -23,7 +27,8 @@ import {destroyCamera, initCamera} from '../../halpers/camera-utils';
   standalone: true,
   imports: [
     RectangleComponent,
-    AsyncPipe
+    AsyncPipe,
+    JsonPipe
   ],
   templateUrl: './image-recognition.component.html',
   styleUrl: './image-recognition.component.scss',
@@ -35,6 +40,7 @@ export class ImageRecognitionComponent  implements OnDestroy, AfterViewInit {
   getSelectedSideMenuItem$ = this.store.select(getSelectedSideMenuItem).pipe(take(1));
   getOverageRecognitionTime$ = this.store.select(getOverageRecognitionTime);
   getCoordinatesStyles$ = this.store.select(getCoordinatesStyles);
+  getTheDistanceToTheCenterOfTheNearestTarget$ = this.store.select(getTheDistanceToTheCenterOfTheNearestTarget);
 
   private destroy$ = new Subject<void>();
 

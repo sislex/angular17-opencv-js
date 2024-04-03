@@ -17,7 +17,7 @@ export const initialViewState: IViewState = {
   sideMenu:  [
     {name: 'Image', isSelected: true, data: {src: 'assets/images/faces.jpeg', scaleRecognition: 4.5}},
     {name: 'Image from internal camera', data: {isVideo: true, isCamera: true, scaleRecognition: 2, recognitionInterval: 100}},
-    {name: 'Image from external camera', data: {src: 'http://192.168.20.135:8080/video', scaleRecognition: 1, recognitionInterval: 100}},
+    {name: 'Image from external camera', data: {src: 'http://192.168.135.152:8080/video', scaleRecognition: 1, recognitionInterval: 100}},
     {name: 'Image from video', data: {src: 'assets/videos/people.mp4', isVideo: true, scaleRecognition: 2, recognitionInterval: 100}},
   ],
 };

@@ -34,6 +34,18 @@ export const getCoordinatesStyles = createSelector(
   }
 );
 
+export const getTheDistanceToTheCenterOfTheNearestTarget = createSelector(
+  selectFeature,
+  (state: IViewState) => {
+    let result;
+    if (state.coordinatesList[state.currentCoordinatesNumber]) {
+      result = findNearestPointToCenter(state.coordinatesList[state.currentCoordinatesNumber]);
+    }
+
+    return result;
+  }
+);
+
 export const getNumberOfCoordinates = createSelector(
   selectFeature,
   (state: IViewState) => state.numberOfCoordinates

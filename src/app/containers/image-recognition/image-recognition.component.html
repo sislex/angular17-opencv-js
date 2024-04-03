@@ -1,5 +1,6 @@
 <h2>{{(getSelectedSideMenuItem$ | async)!.name}}</h2>
 <p class="sr-only">OverageRecognitionTime: {{getOverageRecognitionTime$ | async}}</p>
+<p class="sr-only">Distance to center: {{(getTheDistanceToTheCenterOfTheNearestTarget$ | async) | json}}</p>
 <div class="display-flex">
   <div class="image-wrapper">
     @if ((getSelectedSideMenuItem$ | async)!.data.isVideo) {
